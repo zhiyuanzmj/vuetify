@@ -37,7 +37,7 @@
     "roboto-fontface": "^0.10.0",
     "swetrix": "^3.7.2",
     "vee-validate": "^4.15.1",
-    "vue": "^3.5.25",
+    "vue": "3.5.25",
     "vue-i18n": "^11.1.12",
     "vue-instantsearch": "^4.20.6",
     "vue-router": "^4.6.3",

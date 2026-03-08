@@ -153,12 +153,12 @@ export const VSliderThumb = genericComponent<VSliderThumbSlots>()({
       }
     })
 
+    const thumbLabelVisible = computed(() => thumbLabel.value === 'always' ||
+        (thumbLabel.value === true && props.focused) ||
+        (thumbLabel.value === 'hover' && (isHovered.value || (props.focused && !isHidden.value))))
+
     useRender(() => {
       const positionPercentage = convertToUnit(indexFromEnd.value ? 100 - props.position : props.position, '%')
-
-      const thumbLabelVisible = thumbLabel.value === 'always' ||
-        (thumbLabel.value === true && props.focused) ||
-        (thumbLabel.value === 'hover' && (isHovered.value || (props.focused && !isHidden.value)))
 
       return (
         <div
@@ -204,12 +204,12 @@ export const VSliderThumb = genericComponent<VSliderThumbSlots>()({
               textColorClasses.value,
             ]}
             style={ textColorStyles.value }
-            v-ripple={[props.ripple, null, ['circle', 'center']]}
+            v-ripple_circle_center={ props.ripple }
           />
           <VScaleTransition origin="bottom center">
             <div
               class="v-slider-thumb__label-container"
-              v-show={ thumbLabelVisible }
+              v-show={ thumbLabelVisible.value }
             >
               <div
                 class={[

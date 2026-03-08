@@ -28,7 +28,7 @@ describe('v-intersect', () => {
     render({
       directives: { vIntersect },
       setup () {
-        return () => <div v-intersect={[callback, null, ['quiet']]} style="height: 10px" />
+        return () => <div v-intersect_quiet={ callback } style="height: 10px" />
       },
     })
 
@@ -48,8 +48,8 @@ describe('v-intersect', () => {
             <>
               <div style={{ height }} />
               { quiet // directive modifiers are static
-                ? <div v-intersect={[callback, null, ['once', 'quiet']]} style="height: 10px">el</div>
-                : <div v-intersect={[callback, null, ['once']]} style="height: 10px">el</div>
+                ? <div v-intersect_once_quiet={ callback } style="height: 10px">el</div>
+                : <div v-intersect_once={ callback } style="height: 10px">el</div>
               }
               <div style="height: 1000px" />
             </>

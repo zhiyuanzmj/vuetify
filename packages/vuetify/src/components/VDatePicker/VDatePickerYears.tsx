@@ -125,9 +125,9 @@ export const VDatePickerYears = genericComponent<VDatePickerYearsSlots>()({
       <div
         class="v-date-picker-years"
         ref={ containerRef }
-        v-intersect={[{
+        v-intersect_once={{
           handler: focusSelectedYear,
-        }, null, ['once']]}
+        }}
         style={{
           height: convertToUnit(props.height),
         }}
