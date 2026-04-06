@@ -223,7 +223,7 @@ export const VSliderThumb = genericComponent<VSliderThumbSlots>()({
                 </div>
                 <div class="v-slider-thumb__label-wedge" />
               </div>
-              </div>
+            </div>
           </VScaleTransition>
         </div>
       )
