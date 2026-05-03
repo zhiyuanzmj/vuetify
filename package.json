@@ -92,5 +92,5 @@
     "vuetify": "workspace:*",
     "yargs": "^17.7.2"
   },
-  "packageManager": "pnpm@10.26.1"
+  "packageManager": "pnpm@11.0.0"
 }
