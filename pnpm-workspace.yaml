@@ -5,6 +5,8 @@ autoInstallPeers: false
 
 ignoreWorkspaceRootCheck: true
 
+dangerouslyAllowAllBuilds: true
+
 ignoredBuiltDependencies:
   - '@parcel/watcher'
   - esbuild
@@ -23,6 +25,8 @@ minimumReleaseAgeExclude:
   - playwright
   - playwright-core
   - '@vizzly-testing/vitest@0.1.1'
+  - vue-jsx-vapor
+  - '@vue-jsx-vapor/*'
 
 nodeLinker: hoisted
 
