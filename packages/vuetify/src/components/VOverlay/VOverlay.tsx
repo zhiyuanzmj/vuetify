@@ -37,6 +37,7 @@ import {
 import {
   animate,
   convertToUnit,
+  focusableChildren,
   genericComponent,
   getCurrentInstance,
   getScrollParent,
@@ -206,7 +207,61 @@ export const VOverlay = genericComponent<OverlaySlots>()({
       )
     }
 
-    useFocusTrap(props, { isActive, localTop, contentEl, activatorEl })
+    useFocusTrap(props, { isActive, localTop, contentEl })
+
+    let openedWithActivatorFocus = false
+
+    function ownsFocus (activeElement: Element | null): boolean {
+      let current = activeElement
+      const visited = new Set<Element>()
+      while (current) {
+        const el = current.closest('.v-overlay__content')
+        if (!el || visited.has(el)) return false
+        if (el === contentEl.value) return true
+        visited.add(el)
+        const ownerId = el.closest('.v-overlay')?.id
+        current = ownerId ? document.querySelector(`[aria-owns~="${CSS.escape(ownerId)}"]`) : null
+      }
+      return false
+    }
+
+    function returnFocusToActivator () {
+      const el = activatorEl.value
+      if (!el || !el.isConnected) return
+      // Skip submenus; the outermost close in the cascade will restore focus.
+      if (el.closest('.v-overlay__content')) return
+
+      if (contentEl.value?._clickOutside?.lastMousedownWasOutside) return
+
+      const activeEl = document.activeElement
+      const focusWasInOverlay =
+        ((!activeEl || activeEl === document.body) && openedWithActivatorFocus) ||
+        activeEl === el ||
+        el.contains(activeEl) ||
+        ownsFocus(activeEl)
+      if (!focusWasInOverlay) return
+
+      const parent = el.parentElement
+      const focusableInParent = parent ? focusableChildren(parent) : []
+      let target: HTMLElement | undefined
+      if (focusableInParent.includes(el)) {
+        target = el
+      } else {
+        const focusableWithin = focusableChildren(el)
+        target = focusableWithin.find(x => x.tagName === 'INPUT' || x.tagName === 'TEXTAREA') ?? focusableWithin[0]
+      }
+      target?.focus({ preventScroll: true })
+    }
+
+    watch(isActive, val => {
+      if (val) {
+        const activeEl = document.activeElement
+        const el = activatorEl.value
+        openedWithActivatorFocus = !!el && (activeEl === el || el.contains(activeEl))
+      } else {
+        returnFocusToActivator()
+      }
+    }, { flush: 'post' })
 
     IN_BROWSER && watch(isActive, val => {
       if (val) {
@@ -343,7 +398,16 @@ export const VOverlay = genericComponent<OverlaySlots>()({
                 <div
                   ref={ contentEl }
                   v-show={ isActive.value }
-                  v-click-outside={{ handler: onClickOutside, closeConditional, include: () => [activatorEl.value] }}
+                  v-click-outside={{
+                    handler: onClickOutside,
+                    closeConditional,
+                    include: () => [
+                      activatorEl.value,
+                      // Submenu clicks count as "inside"; clicks in ancestor overlays (e.g. a host dialog) don't.
+                      ...Array.from(document.querySelectorAll('.v-overlay__content'))
+                        .filter(ownsFocus) as HTMLElement[],
+                    ],
+                  }}
                   class={[
                     'v-overlay__content',
                     props.contentClass,

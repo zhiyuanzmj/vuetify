@@ -176,12 +176,13 @@ export const VList = genericComponent<new <S, A, O, T extends readonly any[]>(
     const { densityClasses } = useDensity(props)
     const { dimensionStyles } = useDimension(props)
     const { elevationClasses } = useElevation(props)
-    const { roundedClasses } = useRounded(props)
+    const { roundedClasses, roundedStyles } = useRounded(props)
 
     const { children, open, parents, select, getPath } = useNested(props, {
       items,
       returnObject: toRef(() => props.returnObject),
       scrollToActive: toRef(() => props.navigationStrategy === 'track'),
+      valueComparator: toRef(() => props.valueComparator),
     })
 
     const lineClasses = toRef(() => props.lines ? `v-list--${props.lines}-line` : undefined)
@@ -378,6 +379,7 @@ export const VList = genericComponent<new <S, A, O, T extends readonly any[]>(
             },
             backgroundColorStyles.value,
             dimensionStyles.value,
+            roundedStyles.value,
             props.style,
           ]}
           tabindex={ props.disabled ? -1 : 0 }

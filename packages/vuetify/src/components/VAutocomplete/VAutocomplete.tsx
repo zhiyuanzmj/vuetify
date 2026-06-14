@@ -15,11 +15,13 @@ import { makeSelectProps } from '@/components/VSelect/VSelect'
 import { VSheet } from '@/components/VSheet'
 import { makeVTextFieldProps, VTextField } from '@/components/VTextField/VTextField'
 import { VVirtualScroll } from '@/components/VVirtualScroll'
+import { VHighlight } from '@/labs/VHighlight'
 
 // Composables
+import { useFocusRepair } from '../VSelect/useFocusRepair'
 import { useScrolling } from '../VSelect/useScrolling'
 import { useTextColor } from '@/composables/color'
-import { highlightResult, makeFilterProps, useFilter } from '@/composables/filter'
+import { makeFilterProps, useFilter } from '@/composables/filter'
 import { useFocusGroups } from '@/composables/focusGroups'
 import { useForm } from '@/composables/form'
 import { forwardRefs } from '@/composables/forwardRefs'
@@ -199,6 +201,11 @@ export const VAutocomplete = genericComponent<new <
     const headerRef = ref<HTMLElement>()
     const footerRef = ref<HTMLElement>()
     const listEvents = useScrolling(listRef, vTextFieldRef)
+    const repairOrphanedFocus = useFocusRepair(
+      menu,
+      () => vMenuRef.value?.contentEl,
+      () => vTextFieldRef.value?.controlRef,
+    )
     const { onTabKeydown } = useFocusGroups({
       groups: [
         { type: 'element' as const, contentRef: headerRef },
@@ -342,8 +349,12 @@ export const VAutocomplete = genericComponent<new <
     }
     function onAfterLeave () {
       if (isFocused.value) {
-        isPristine.value = true
-        vTextFieldRef.value?.focus()
+        if (vMenuRef.value?.contentEl?._clickOutside?.lastMousedownWasOutside) {
+          isFocused.value = false
+        } else {
+          isPristine.value = true
+          vTextFieldRef.value?.focus()
+        }
       }
       _searchLock.value = null
     }
@@ -357,6 +368,7 @@ export const VAutocomplete = genericComponent<new <
     function onFocusout (e: FocusEvent) {
       listHasFocus.value = false
       if (!vTextFieldRef.value?.$el.contains(e.relatedTarget as Node)) {
+        if (repairOrphanedFocus(e)) return
         isFocused.value = false
       }
     }
@@ -364,9 +376,18 @@ export const VAutocomplete = genericComponent<new <
       if (v == null || (v === '' && !props.multiple && !hasSelectionSlot.value)) model.value = []
     }
 
+    let mousedownInsideContentAt = 0
+    function onMousedownContent () {
+      mousedownInsideContentAt = performance.now()
+    }
+
     function onBlur (e: FocusEvent) {
+      const next = e.relatedTarget as Node | null
       const menuContent = vMenuRef.value?.contentEl
-      if (menuContent?.contains(e.relatedTarget as Node)) {
+      if (
+        menuContent?.contains(next) ||
+        (!next && performance.now() - mousedownInsideContentAt < 10)
+      ) {
         isFocused.value = true
       }
     }
@@ -524,6 +545,7 @@ export const VAutocomplete = genericComponent<new <
                     elevation={ props.menuElevation }
                     onFocusin={ onFocusin }
                     onKeydown={ onMenuKeydown }
+                    onMousedown={ onMousedownContent }
                   >
                     { slots['menu-header'] && (
                       <header ref={ headerRef }>
@@ -611,7 +633,15 @@ export const VAutocomplete = genericComponent<new <
                               title: () => {
                                 return isPristine.value
                                   ? item.title
-                                  : highlightResult('v-autocomplete', item.title, getMatches(item)?.title)
+                                  : (
+                                    <VHighlight
+                                      text={ item.title }
+                                      matches={ getMatches(item)?.title }
+                                      markClass="v-autocomplete__mask"
+                                      matchAll
+                                      ignoreCase
+                                    />
+                                  )
                               },
                             }}
                           </VListItem>

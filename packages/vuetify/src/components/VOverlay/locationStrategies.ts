@@ -48,6 +48,7 @@ const locationStrategies = {
 
 export interface StrategyProps {
   locationStrategy: keyof typeof locationStrategies | LocationStrategyFunction
+  contained?: boolean
   location: Anchor
   origin: Anchor | 'auto' | 'overlap'
   offset?: number | string | number[]
@@ -96,6 +97,7 @@ export function useLocationStrategies (
         visualViewport?.removeEventListener('resize', onVisualResize)
         visualViewport?.removeEventListener('scroll', onVisualScroll)
         updateLocation.value = undefined
+        contentStyles.value = {}
       })
 
       window.addEventListener('resize', onResize, { passive: true })
@@ -128,8 +130,73 @@ export function useLocationStrategies (
   }
 }
 
-function staticLocationStrategy () {
-  // TODO
+function staticLocationStrategy (data: LocationStrategyData, props: StrategyProps, contentStyles: Ref<Record<string, string>>) {
+  if (props.contained) return
+
+  const target = ref<[x: number, y: number]>()
+  const connectedStyles = ref<Record<string, string>>({})
+
+  // reactive equivalent of `{ ...props, origin: 'auto' }`
+  const connectedProps = new Proxy(props, {
+    get: (target, key) => key === 'origin' ? 'auto' : Reflect.get(target, key),
+  })
+
+  const connected = connectedLocationStrategy(
+    { ...data, target },
+    connectedProps,
+    connectedStyles
+  )
+
+  function updateStyles () {
+    if (props.origin !== 'auto' && props.origin !== 'overlap') {
+      const { side, align } = parseAnchor(props.origin, data.isRtl.value)
+      contentStyles.value = { ...connectedStyles.value, transformOrigin: `${side} ${align}` }
+    } else {
+      contentStyles.value = connectedStyles.value
+    }
+  }
+
+  watch(connectedStyles, updateStyles, { deep: true })
+  watch([() => props.origin, data.isRtl], updateStyles)
+
+  function updateTarget () {
+    const viewportBox = new Box({
+      x: visualViewport?.offsetLeft ?? 0,
+      y: visualViewport?.offsetTop ?? 0,
+      width: visualViewport?.width ?? window.innerWidth,
+      height: visualViewport?.height ?? window.innerHeight,
+    })
+
+    const point = anchorToPoint(parseAnchor(props.location, data.isRtl.value), viewportBox)
+    target.value = [point.x, point.y]
+  }
+
+  function updateLocation () {
+    updateTarget()
+    connected.updateLocation()
+  }
+
+  watch(() => [props.location, data.isRtl.value], () => {
+    updateLocation()
+  })
+
+  nextTick(() => {
+    updateLocation()
+  })
+
+  return { updateLocation }
+}
+
+/** Resolve a CSS length the browser understands (calc(), min(), vw, …) to pixels */
+function resolveCssLength (value: string, container: HTMLElement, isWidth: boolean) {
+  const probe = document.createElement('div')
+  probe.style.position = 'absolute'
+  probe.style.visibility = 'hidden'
+  probe.style[isWidth ? 'width' : 'height'] = value
+  container.appendChild(probe)
+  const size = isWidth ? probe.offsetWidth : probe.offsetHeight
+  container.removeChild(probe)
+  return size > 0 ? size : Infinity
 }
 
 /** Get size of element ignoring max-width/max-height */
@@ -198,12 +265,26 @@ function connectedLocationStrategy (data: LocationStrategyData, props: StrategyP
     }
   })
 
-  const [minWidth, minHeight, maxWidth, maxHeight] =
+  const [getMinWidth, getMinHeight, getMaxWidth, getMaxHeight] =
     (['minWidth', 'minHeight', 'maxWidth', 'maxHeight'] as const).map(key => {
-      return computed(() => {
-        const val = parseFloat(props[key]!)
-        return isNaN(val) ? Infinity : val
-      })
+      const isWidth = key.endsWith('Width')
+      return () => {
+        const raw = props[key]
+        if (raw == null) return Infinity
+
+        const container = (data.contentEl.value?.parentElement ?? document.documentElement) as HTMLElement
+
+        if (typeof raw === 'number' || /^-?[\d.]+(?:px)?$/.test(raw.trim())) {
+          return parseFloat(raw as string)
+        }
+        if (raw.endsWith('%')) {
+          // resolve against the overlay container, like CSS would
+          const box = getElementBox(container)
+          return parseFloat(raw) * (isWidth ? box.width : box.height) / 100
+        }
+        // let the browser resolve viewport units, calc(), min(), max(), clamp(), etc.
+        return resolveCssLength(raw, container, isWidth)
+      }
     })
 
   const offset = computed(() => {
@@ -285,6 +366,10 @@ function connectedLocationStrategy (data: LocationStrategyData, props: StrategyP
     const contentBox = getIntrinsicSize(data.contentEl.value, data.isRtl.value)
     const scrollParents = getScrollParents(data.contentEl.value)
     const viewportMargin = Number(props.viewportMargin)
+    const minWidth = getMinWidth()
+    const minHeight = getMinHeight()
+    const maxWidth = getMaxWidth()
+    const maxHeight = getMaxHeight()
 
     if (!scrollParents.length) {
       scrollParents.push(document.documentElement)
@@ -355,8 +440,8 @@ function connectedLocationStrategy (data: LocationStrategyData, props: StrategyP
       box.x += x
       box.y += y
 
-      box.width = Math.min(box.width, maxWidth.value)
-      box.height = Math.min(box.height, maxHeight.value)
+      box.width = Math.min(box.width, maxWidth)
+      box.height = Math.min(box.height, maxHeight)
 
       const overflows = getOverflow(box, viewport)
 
@@ -448,17 +533,20 @@ function connectedLocationStrategy (data: LocationStrategyData, props: StrategyP
     }
 
     const axis = getAxis(placement.anchor)
+    const transformOrigin = props.origin !== 'auto' && props.origin !== 'overlap'
+      ? parseAnchor(props.origin, data.isRtl.value)
+      : placement.origin
 
     Object.assign(contentStyles.value, {
       '--v-overlay-anchor-origin': `${placement.anchor.side} ${placement.anchor.align}`,
-      transformOrigin: `${placement.origin.side} ${placement.origin.align}`,
+      transformOrigin: `${transformOrigin.side} ${transformOrigin.align}`,
       // transform: `translate(${pixelRound(x)}px, ${pixelRound(y)}px)`,
       top: convertToUnit(pixelRound(y)),
       left: data.isRtl.value ? undefined : convertToUnit(pixelRound(x)),
       right: data.isRtl.value ? convertToUnit(pixelRound(-x)) : undefined,
-      minWidth: convertToUnit(axis === 'y' ? Math.min(minWidth.value, targetBox.width) : minWidth.value),
-      maxWidth: convertToUnit(pixelCeil(clamp(available.x, minWidth.value === Infinity ? 0 : minWidth.value, maxWidth.value))),
-      maxHeight: convertToUnit(pixelCeil(clamp(available.y, minHeight.value === Infinity ? 0 : minHeight.value, maxHeight.value))),
+      minWidth: convertToUnit(axis === 'y' ? Math.min(minWidth, targetBox.width) : minWidth),
+      maxWidth: convertToUnit(pixelCeil(clamp(available.x, minWidth === Infinity ? 0 : minWidth, maxWidth))),
+      maxHeight: convertToUnit(pixelCeil(clamp(available.y, minHeight === Infinity ? 0 : minHeight, maxHeight))),
     })
 
     return {
@@ -472,6 +560,7 @@ function connectedLocationStrategy (data: LocationStrategyData, props: StrategyP
     () => [
       preferredAnchor.value,
       preferredOrigin.value,
+      props.origin,
       props.offset,
       props.minWidth,
       props.minHeight,
