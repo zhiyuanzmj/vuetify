@@ -397,10 +397,10 @@ export const VImg = genericComponent<VImgSlots>()({
           aspectRatio={ aspectRatio.value }
           aria-label={ props.alt }
           role={ props.alt ? 'img' : undefined }
-          v-intersect_once={{
+          v-intersect={[{
             handler: init,
             options: props.options,
-          }}
+          }, null, ['once']]}
         >{{
           additional: () => (
             <>

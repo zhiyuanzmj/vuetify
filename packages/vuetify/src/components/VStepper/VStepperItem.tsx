@@ -143,7 +143,11 @@ export const VStepperItem = genericComponent<VStepperItemSlots>()({
           ]}
           disabled={ !props.editable }
           type="button"
-          v-ripple={ props.editable && props.ripple }
+          v-ripple={[
+            props.editable && props.ripple,
+            null,
+            null,
+          ]}
           onClick={ onClick }
         >
           { isClickable.value && genOverlays(true, 'v-stepper-item') }

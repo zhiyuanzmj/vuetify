@@ -204,7 +204,7 @@ export const VSliderThumb = genericComponent<VSliderThumbSlots>()({
               textColorClasses.value,
             ]}
             style={ textColorStyles.value }
-            v-ripple_circle_center={ props.ripple }
+            v-ripple={[props.ripple, null, ['circle', 'center']]}
           />
           <VScaleTransition origin="bottom center">
             <div

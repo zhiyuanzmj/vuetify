@@ -145,9 +145,9 @@ export const VDatePickerYears = genericComponent<VDatePickerYearsSlots>()({
         class="v-date-picker-years"
         ref={ containerRef }
         tabindex={ -1 }
-        v-intersect_once={{
+        v-intersect={[{
           handler: scrollToSelected,
-        }}
+        }, null, ['once']]}
         style={{
           height: convertToUnit(props.height),
         }}
