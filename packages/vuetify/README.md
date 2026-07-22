@@ -17,7 +17,7 @@
     <img src="https://img.shields.io/npm/l/vuetify.svg" alt="License">
   </a>
   <a href="https://discord.gg/vuetify">
-    <img src="https://discordapp.com/api/guilds/340160225338195969/widget.png" alt="Chat">
+    <img src="https://img.shields.io/discord/1513968811047522396?label=Chat&logo=discord" alt="Chat">
   </a>
   <br>
   <a href="https://www.npmjs.com/package/vuetify">
@@ -128,11 +128,15 @@ Funds donated through GitHub Sponsors directly support [John Leider](https://git
     <tr>
       <td style="text-align: center;">
         <a href="https://www.muenchen.de/">
-          <img height="30px" src="https://imgix.cosmicjs.com/af2ce530-eaa2-11ed-ba82-019c4666da06-itm-logo.png">
+          <img height="30px" src="https://cdn.cosmicjs.com/af2ce530-eaa2-11ed-ba82-019c4666da06-itm-logo.png">
+        </a>
+      </td>
+      <td>
+        <a href="https://views4you.com/buy-instagram-followers/">
+          <img height="30px" src="https://cdn.cosmicjs.com/861b0ce0-50e4-11ef-b1ea-f56c65dfade9-views-4-you-light.png">
         </a>
       </td>
     </tr>
-    <tr></tr>
   </tbody>
 </table>
 
