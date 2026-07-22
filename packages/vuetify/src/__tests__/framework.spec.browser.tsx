@@ -1,5 +1,6 @@
 // Utilities
 import { mount } from '@vue/test-utils'
+import { resolveComponent } from 'vue'
 import { createVuetify } from '@/framework'
 
 describe('framework', () => {
@@ -21,7 +22,7 @@ describe('framework', () => {
       const TestComponent = {
         name: 'TestComponent',
         props: {},
-        render: () => (<foo />),
+        render: () => (resolveComponent('foo')),
       }
 
       mount(TestComponent, {
