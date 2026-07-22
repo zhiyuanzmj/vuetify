@@ -5,8 +5,6 @@ autoInstallPeers: false
 
 ignoreWorkspaceRootCheck: true
 
-dangerouslyAllowAllBuilds: true
-
 ignoredBuiltDependencies:
   - '@parcel/watcher'
   - esbuild
